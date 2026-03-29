@@ -1,0 +1,742 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunPod I2I Sender</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e8;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #12121a 0%, #1a1a2e 100%);
+            border-bottom: 1px solid rgba(130, 90, 255, 0.2);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #825aff, #5eead4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .badge {
+            background: rgba(130, 90, 255, 0.15);
+            border: 1px solid rgba(130, 90, 255, 0.3);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #825aff;
+            font-weight: 500;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 0;
+            height: calc(100vh - 57px);
+        }
+
+        /* Panels */
+        .panel {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel-left {
+            border-right: 1px solid rgba(130, 90, 255, 0.15);
+            background: #0d0d14;
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .panel-right {
+            background: #0a0a10;
+            position: relative;
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        /* Drop zone for image upload */
+        .drop-zone {
+            flex: 1;
+            min-height: 0;
+            background: #12121c;
+            border: 2px dashed rgba(130, 90, 255, 0.25);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drop-zone:hover {
+            border-color: rgba(130, 90, 255, 0.5);
+            background: #14142a;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #825aff;
+            background: rgba(130, 90, 255, 0.08);
+            box-shadow: 0 0 30px rgba(130, 90, 255, 0.12);
+        }
+
+        .drop-zone.has-image {
+            border-style: solid;
+            border-color: rgba(130, 90, 255, 0.3);
+            cursor: default;
+        }
+
+        .drop-zone__placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            pointer-events: none;
+        }
+
+        .drop-zone.has-image .drop-zone__placeholder {
+            display: none;
+        }
+
+        .drop-zone__icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: rgba(130, 90, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drop-zone__icon svg {
+            width: 32px;
+            height: 32px;
+            color: #825aff;
+        }
+
+        .drop-zone__text {
+            text-align: center;
+        }
+
+        .drop-zone__text-main {
+            font-size: 15px;
+            font-weight: 500;
+            color: #ccc;
+            margin-bottom: 6px;
+        }
+
+        .drop-zone__text-sub {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Uploaded image preview */
+        .drop-zone__preview {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .drop-zone.has-image .drop-zone__preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drop-zone__preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .drop-zone__clear {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 60, 60, 0.8);
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 2;
+            backdrop-filter: blur(8px);
+        }
+
+        .drop-zone__clear:hover {
+            background: rgba(255, 60, 60, 1);
+            transform: scale(1.1);
+        }
+
+        /* Hidden file input */
+        #fileInput {
+            display: none;
+        }
+
+        /* Send button */
+        .send-btn {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #825aff 0%, #6c3bea 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 28px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #9370ff 0%, #825aff 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(130, 90, 255, 0.3);
+        }
+
+        .send-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-btn.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .send-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Right panel: wrapper for logs and result */
+        .right-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 0;
+        }
+
+        /* Log console */
+        .log-area {
+            flex: 1;
+            background: #08080e;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            overflow-y: auto;
+            color: #aaa;
+            transition: opacity 0.4s ease;
+        }
+
+        .log-area.hidden {
+            display: none;
+        }
+
+        .log-area .log-line {
+            margin-bottom: 2px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .log-area .log-line.status {
+            color: #5eead4;
+        }
+
+        .log-area .log-line.error {
+            color: #ff6b6b;
+        }
+
+        .log-area .log-line.complete {
+            color: #a8ff78;
+        }
+
+        .log-area .log-line .timestamp {
+            color: #555;
+            margin-right: 8px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Result block */
+        .result-area {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #08080e;
+            border: 1px solid rgba(94, 234, 212, 0.15);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            animation: fadeIn 0.5s ease;
+            min-height: 0;
+            min-width: 0;
+        }
+
+        .result-area.visible {
+            display: flex;
+        }
+
+        .result-area img {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 12px;
+        }
+
+        /* Toggle button for logs / result view */
+        .toggle-view-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(130, 90, 255, 0.2);
+            border: 1px solid rgba(130, 90, 255, 0.35);
+            color: #c4b0ff;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            z-index: 5;
+            backdrop-filter: blur(8px);
+            display: none;
+        }
+
+        .toggle-view-btn.visible {
+            display: block;
+        }
+
+        .toggle-view-btn:hover {
+            background: rgba(130, 90, 255, 0.35);
+            border-color: rgba(130, 90, 255, 0.6);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(130, 90, 255, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(130, 90, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>RunPod I2I Sender</h1>
+        <span class="badge">Serverless</span>
+    </div>
+
+    <div class="main">
+        <!-- Left panel: image upload -->
+        <div class="panel panel-left">
+            <div class="panel-title">Input Image</div>
+
+            <div id="dropZone" class="drop-zone">
+                <div class="drop-zone__placeholder">
+                    <div class="drop-zone__icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                        </svg>
+                    </div>
+                    <div class="drop-zone__text">
+                        <div class="drop-zone__text-main">Drop image here</div>
+                        <div class="drop-zone__text-sub">or click to choose a file</div>
+                    </div>
+                </div>
+
+                <div class="drop-zone__preview">
+                    <img id="previewImg" src="" alt="Preview">
+                    <button id="clearBtn" class="drop-zone__clear" title="Remove image">✕</button>
+                </div>
+            </div>
+
+            <input type="file" id="fileInput" accept="image/*">
+
+            <button id="sendBtn" class="send-btn" onclick="sendRequest()" disabled>
+                Send Request
+            </button>
+        </div>
+
+        <!-- Right panel: logs / result -->
+        <div class="panel panel-right">
+            <div class="panel-title">Execution Log</div>
+
+            <div class="right-content">
+                <div id="logArea" class="log-area">
+                    <div class="log-line status">
+                        <span class="timestamp">[system]</span>Ready to send requests
+                    </div>
+                </div>
+
+                <div id="resultArea" class="result-area">
+                    <img id="resultImg" src="" alt="Result">
+                </div>
+
+                <button id="toggleViewBtn" class="toggle-view-btn" onclick="toggleView()">Show Logs</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== State =====
+        let selectedFile = null;
+        let selectedBase64 = null;
+        let showingResult = false;
+
+        // ===== Elements =====
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewImg = document.getElementById('previewImg');
+        const clearBtn = document.getElementById('clearBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const logArea = document.getElementById('logArea');
+        const resultArea = document.getElementById('resultArea');
+        const resultImg = document.getElementById('resultImg');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+
+        // ===== Utilities =====
+        function getTimestamp() {
+            const now = new Date();
+            return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function addLog(message, type = 'status') {
+            const line = document.createElement('div');
+            line.className = `log-line ${type}`;
+            line.innerHTML = `<span class="timestamp">[${getTimestamp()}]</span>${message}`;
+            logArea.appendChild(line);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateSendButtonState() {
+            sendBtn.disabled = !selectedBase64;
+        }
+
+        // ===== File upload =====
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                addLog('Error: please choose an image file', 'error');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedBase64 = e.target.result; // data:image/...;base64,...
+                previewImg.src = selectedBase64;
+                dropZone.classList.add('has-image');
+                updateSendButtonState();
+            };
+            reader.readAsDataURL(file);
+
+            addLog(`Uploaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+        }
+
+        function clearFile() {
+            selectedFile = null;
+            selectedBase64 = null;
+            previewImg.src = '';
+            dropZone.classList.remove('has-image');
+            updateSendButtonState();
+        }
+
+        // Click on drop zone -> open file picker
+        dropZone.addEventListener('click', (e) => {
+            if (e.target === clearBtn || clearBtn.contains(e.target)) return;
+            if (dropZone.classList.contains('has-image')) return;
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        clearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearFile();
+            addLog('Image removed');
+        });
+
+        // Drag-and-drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        // ===== Toggle logs / result =====
+        function showResult(imgSrc) {
+            resultImg.src = imgSrc;
+            resultArea.classList.add('visible');
+            logArea.classList.add('hidden');
+            toggleViewBtn.classList.add('visible');
+            toggleViewBtn.textContent = 'Show Logs';
+            showingResult = true;
+        }
+
+        function toggleView() {
+            if (showingResult) {
+                resultArea.classList.remove('visible');
+                logArea.classList.remove('hidden');
+                toggleViewBtn.textContent = 'Show Result';
+                showingResult = false;
+            } else {
+                resultArea.classList.add('visible');
+                logArea.classList.add('hidden');
+                toggleViewBtn.textContent = 'Show Logs';
+                showingResult = true;
+            }
+        }
+
+        // ===== Send request =====
+        function sendRequest() {
+            if (!selectedBase64) {
+                addLog('Error: please upload an image', 'error');
+                return;
+            }
+
+            // Lock UI
+            sendBtn.disabled = true;
+            sendBtn.classList.add('loading');
+            sendBtn.textContent = 'Sending...';
+
+            // Reset result view and show logs
+            resultArea.classList.remove('visible');
+            logArea.classList.remove('hidden');
+            toggleViewBtn.classList.remove('visible');
+            showingResult = false;
+
+            addLog(`Sending image (${selectedFile.name})...`, 'status');
+
+            // Send full base64 string with data URL prefix as expected by the worker
+            const base64Data = selectedBase64;
+
+            fetch('/api/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64Data, image_name: selectedFile.name })
+            }).then(response => {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                function read() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            unlock();
+                            return;
+                        }
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop();
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+
+                                    if (data.type === 'status') {
+                                        addLog(data.message, 'status');
+                                    } else if (data.type === 'complete') {
+                                        addLog(data.message, 'complete');
+
+                                        // If response contains an image, display it
+                                        if (data.image) {
+                                            if (typeof data.image === 'object') {
+                                                if (data.image.type === 'url') {
+                                                    showResult(data.image.data);
+                                                } else {
+                                                    const prefix = data.image.data.startsWith('data:') ? '' : 'data:image/png;base64,';
+                                                    showResult(prefix + data.image.data);
+                                                }
+                                            } else {
+                                                const prefix = data.image.startsWith('data:') ? '' : 'data:image/png;base64,';
+                                                showResult(prefix + data.image);
+                                            }
+                                        } else if (data.output) {
+                                            // Fallback: try to extract image from output
+                                            const img = extractImage(data.output);
+                                            if (img) {
+                                                showResult(img);
+                                            }
+                                        }
+                                        unlock();
+                                    } else if (data.type === 'error') {
+                                        addLog(data.message, 'error');
+                                        unlock();
+                                    }
+                                } catch (e) {
+                                    // ignore parse errors
+                                }
+                            }
+                        }
+
+                        read();
+                    });
+                }
+
+                read();
+            }).catch(err => {
+                addLog(`Connection error: ${err.message}`, 'error');
+                unlock();
+            });
+
+            function unlock() {
+                updateSendButtonState();
+                sendBtn.classList.remove('loading');
+                sendBtn.textContent = 'Send Request';
+            }
+        }
+
+        // Try to extract base64 or s3 URL from arbitrary output
+        function extractImage(output) {
+            if (typeof output === 'string') {
+                if (output.startsWith('http')) return output;
+                // If this is already base64
+                if (output.length > 100 && !output.includes(' ')) {
+                    return output.startsWith('data:') ? output : 'data:image/png;base64,' + output;
+                }
+            }
+            if (typeof output === 'object' && output !== null) {
+                // Direct image field is the most reliable path
+                if (typeof output.image === 'string') {
+                    if (output.image.startsWith('http')) return output.image;
+                    if (output.image.length > 100) {
+                        return output.image.startsWith('data:') ? output.image : 'data:image/png;base64,' + output.image;
+                    }
+                }
+                for (const key of ['images', 'result', 'output']) {
+                    if (output[key]) {
+                        let val = Array.isArray(output[key]) ? output[key][0] : output[key];
+                        // Item can be an object {type: "s3_url", data: "..."} or {data: "base64..."}
+                        if (typeof val === 'object' && val !== null) {
+                            if (val.type === 's3_url' && val.data) return val.data;
+                            if (val.type === 'base64' && val.data) {
+                                return val.data.startsWith('data:') ? val.data : 'data:image/png;base64,' + val.data;
+                            }
+                            val = val.data || val.content || '';
+                        }
+                        if (typeof val === 'string') {
+                            if (val.startsWith('http')) return val;
+                            if (val.length > 100) {
+                                return val.startsWith('data:') ? val : 'data:image/png;base64,' + val;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Ctrl+Enter to send
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                sendRequest();
+            }
+        });
+
+        // Prevent default drop behavior on body
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+        updateSendButtonState();
+    </script>
+</body>
+</html>
+
+
