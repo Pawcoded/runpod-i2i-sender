@@ -4,6 +4,8 @@ A lightweight web UI for manual image-to-image request testing against a RunPod 
 
 This project was created to work with [Pawcoded/runpod_serverless_housemaid](https://github.com/Pawcoded/runpod_serverless_housemaid), stable tag: [`v1.0.0`](https://github.com/Pawcoded/runpod_serverless_housemaid/releases/tag/v1.0.0).
 
+<img width="1621" height="855" alt="image" src="https://github.com/user-attachments/assets/0f6b5c4a-ef44-4f2c-8bc2-35bdcf0aec66" />
+
 ## Local Run (Docker)
 
 1. Create `.env` from the example file:
